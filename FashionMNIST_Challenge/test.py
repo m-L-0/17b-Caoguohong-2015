@@ -143,54 +143,104 @@
 
 #
 #
-# def loadMNIST():
-#     from tensorflow.examples.tutorials.mnist import input_data
-#     mnist = input_data.read_data_sets('./data/', one_hot=True)
-#
-#
-#     return mnist
-#
-#
-# def KNN(mnist):
-#     train_x, train_y = mnist.train.next_batch(60000)
-#     test_x, test_y = mnist.test.next_batch(5000)
-#     # 數據二值化處理
-#     for i in range(len(train_x)):
-#         for j in range(len(train_x[0])):
-#             if train_x[i][j]>0:
-#                 train_x[i][j]=1.0
-#     print(train_x[0])
-#     for i in range(len(test_x)):
-#         for j in range(len(test_x[0])):
-#             if test_x[i][j] > 0:
-#                 test_x[i][j] = 1.0
-#     xtr = tf.placeholder(tf.float32, [None, 784])
-#     xte = tf.placeholder(tf.float32, [784])
-#     distance = tf.sqrt(tf.reduce_sum(tf.pow(tf.add(xtr, tf.negative(xte)), 2), reduction_indices=1))
-#
-#     pred = tf.argmin(distance, 0)
-#
-#     init = tf.global_variables_initializer()
-#
-#     sess = tf.Session()
-#     sess.run(init)
-#
-#     right = 0
-#     for i in range(500):
-#         if i % 250==0 and i !=0:
-#             print("已处理 {0}，正确率为{1}".format(i,right/i))
-#         ansIndex = sess.run(pred, {xtr: train_x, xte: test_x[i, :]})
-#         # print('prediction is ', str(np.where(train_y[ansIndex]==np.max(train_y[ansIndex]))))
-#         # print('true value is ', str(np.where(test_y[i]==np.max(test_y[i]))))
-#         if np.argmax(test_y[i]) == np.argmax(train_y[ansIndex]):
-#             right += 1.0
-#     accracy = right / 500.0
-#     print(accracy)
-#
-#
+
+import numpy as np
+import tensorflow as tf
+
+def read_tfrecord():
+    filename_queue = tf.train.string_input_producer(["test.tfrecords"]) #读入流中
+    reader = tf.TFRecordReader()
+    _, serialized_example = reader.read(filename_queue)   #返回文件名和文件
+    features = tf.parse_single_example(serialized_example,
+                                       features={
+                                           'label': tf.FixedLenFeature([], tf.int64),
+                                           'img_val' : tf.FixedLenFeature([28,28], tf.float32),
+                                       })  #取出包含image和label的feature对象
+    image = tf.cast(features['img_val'], tf.float64)
+    label = tf.cast(features['label'], tf.int32)
+
+    with tf.Session() as sess:
+        init_op = tf.global_variables_initializer()
+        sess.run(init_op)
+        # coord=tf.train.Coordinator()
+        # threads= tf.train.start_queue_runners(coord=coord)
+        # for i in range(2):
+        #     example, l = sess.run([image, label])
+        #     print(example)
+        #     print(l)
+        # coord.request_stop()
+        # coord.join(threads=threads)
+
+read_tfrecord()
+
+
+
+
+
+
+
+
+
+
+
+
+
+def loadMNIST():
+    from tensorflow.examples.tutorials.mnist import input_data
+    mnist = input_data.read_data_sets('./data/', one_hot=True)
+
+
+    return mnist
+
+
+def KNN(mnist):
+    train_x, train_y = mnist.train.next_batch(60000)
+    test_x, test_y = mnist.test.next_batch(5000)
+    # 數據二值化處理
+    for i in range(len(train_x)):
+        for j in range(len(train_x[0])):
+            if train_x[i][j]>0:
+                train_x[i][j]=1.0
+    print(train_x[0])
+    for i in range(len(test_x)):
+        for j in range(len(test_x[0])):
+            if test_x[i][j] > 0:
+                test_x[i][j] = 1.0
+    xtr = tf.placeholder(tf.float32, [None, 784])
+    xte = tf.placeholder(tf.float32, [784])
+    distance = tf.sqrt(tf.reduce_sum(tf.pow(tf.add(xtr, tf.negative(xte)), 2), reduction_indices=1))
+
+    pred = tf.argmin(distance, 0)
+
+    init = tf.global_variables_initializer()
+
+    sess = tf.Session()
+    sess.run(init)
+
+    right = 0
+    for i in range(500):
+        if i % 250==0 and i !=0:
+            print("已处理 {0}，正确率为{1}".format(i,right/i))
+        ansIndex = sess.run(pred, {xtr: train_x, xte: test_x[i, :]})
+        # print('prediction is ', str(np.where(train_y[ansIndex]==np.max(train_y[ansIndex]))))
+        # print('true value is ', str(np.where(test_y[i]==np.max(test_y[i]))))
+        if np.argmax(test_y[i]) == np.argmax(train_y[ansIndex]):
+            right += 1.0
+    accracy = right / 500.0
+    print(accracy)
+
+
 # if __name__ == "__main__":
 #     mnist = loadMNIST()
 #     KNN(mnist)
+
+
+
+
+
+
+
+
 
 # import tensorflow as tf
 # import matplotlib.pyplot as plt
@@ -361,5 +411,140 @@
 
 
 
+# import numpy as np
+# from sklearn.manifold import TSNE
+# from tensorflow.examples.tutorials.mnist import input_data
+#
+# mnist = input_data.read_data_sets('./data/', one_hot=True)
+# X_embedded = TSNE(n_components=2).fit_transform(mnist.train.next_batch(1000)[0])
+# a=[]
+# b=[]
+# for i,j in X_embedded:
+#     a.append(i)
+#     b.append(j)
+# print(X_embedded)
 
 
+# import tensorflow as tf
+# import matplotlib.pyplot as plt
+# import numpy as np
+# from sklearn.manifold import TSNE
+#
+#
+# def loadmnist():
+#     from tensorflow.examples.tutorials.mnist import input_data
+#     return input_data.read_data_sets('./data/')
+# data = loadmnist()
+#
+# mnist = data.train.next_batch(10)
+# X_embedded = TSNE(n_components=2, learning_rate=800.0, early_exaggeration=50.0, n_iter=5000).fit_transform(mnist[0])
+#
+#
+# print(X_embedded)
+# li=[];x=[];y=[];z=[]
+# for i in X_embedded:
+#     x,y,z=i
+#     li.append([x,y,z])
+#
+# print(li)
+
+
+
+# import numpy as np
+#
+#
+# class KMeans(object):
+#     """
+#     - 参数
+#         n_clusters:
+#             聚类个数，即k
+#         initCent:
+#             质心初始化方式，可选"random"或指定一个具体的array,默认random，即随机初始化
+#         max_iter:
+#             最大迭代次数
+#     """
+#     def __init__(self, n_clusters=5, initCent='random', max_iter=300):
+#         if hasattr(initCent, '__array__'):
+#             n_clusters = initCent.shape[0]
+#             self.centroids = np.asarray(initCent, dtype=np.float)
+#         else:
+#             self.centroids = None
+#
+#         self.n_clusters = n_clusters
+#         self.max_iter = max_iter
+#         self.initCent = initCent
+#         self.clusterAssment = None
+#         self.labels = None
+#         self.sse = None
+#
+#         # 计算两点的欧式距离
+#
+#     def _distEclud(self, vecA, vecB):
+#         return np.linalg.norm(vecA - vecB)
+#
+#     # 随机选取k个质心,必须在数据集的边界内
+#     def _randCent(self, X, k):
+#         n = X.shape[1]  # 特征维数
+#         centroids = np.empty((k, n))  # k*n的矩阵，用于存储质心
+#         for j in range(n):  # 产生k个质心，一维一维地随机初始化
+#             minJ = min(X[:, j])
+#             rangeJ = float(max(X[:, j]) - minJ)
+#             centroids[:, j] = (minJ + rangeJ * np.random.rand(k, 1)).flatten()
+#         return centroids
+#
+#     def fit(self, X):
+#         # 类型检查
+#         if not isinstance(X, np.ndarray):
+#             try:
+#                 X = np.asarray(X)
+#             except:
+#                 raise TypeError("numpy.ndarray required for X")
+#
+#         m = X.shape[0]  # m代表样本数量
+#         self.clusterAssment = np.empty((m, 2))  # m*2的矩阵，第一列存储样本点所属的族的索引值，
+#         # 第二列存储该点与所属族的质心的平方误差
+#         if self.initCent == 'random':
+#             self.centroids = self._randCent(X, self.n_clusters)
+#
+#         clusterChanged = True
+#         for _ in range(self.max_iter):
+#             clusterChanged = False
+#             for i in range(m):  # 将每个样本点分配到离它最近的质心所属的族
+#                 minDist = np.inf;
+#                 minIndex = -1
+#                 for j in range(self.n_clusters):
+#                     distJI = self._distEclud(self.centroids[j, :], X[i, :])
+#                     if distJI < minDist:
+#                         minDist = distJI;
+#                         minIndex = j
+#                 if self.clusterAssment[i, 0] != minIndex:
+#                     clusterChanged = True
+#                     self.clusterAssment[i, :] = minIndex, minDist ** 2
+#
+#             if not clusterChanged:  # 若所有样本点所属的族都不改变,则已收敛，结束迭代
+#                 break
+#             for i in range(self.n_clusters):  # 更新质心，即将每个族中的点的均值作为质心
+#                 ptsInClust = X[np.nonzero(self.clusterAssment[:, 0] == i)[0]]  # 取出属于第i个族的所有点
+#                 self.centroids[i, :] = np.mean(ptsInClust, axis=0)
+#
+#         self.labels = self.clusterAssment[:, 0]
+#         self.sse = sum(self.clusterAssment[:, 1])
+#
+#     def predict(self, X):  # 根据聚类结果，预测新输入数据所属的族
+#         # 类型检查
+#         if not isinstance(X, np.ndarray):
+#             try:
+#                 X = np.asarray(X)
+#             except:
+#                 raise TypeError("numpy.ndarray required for X")
+#
+#         m = X.shape[0]  # m代表样本数量
+#         preds = np.empty((m,))
+#         for i in range(m):  # 将每个样本点分配到离它最近的质心所属的族
+#             minDist = np.inf
+#             for j in range(self.n_clusters):
+#                 distJI = self._distEclud(self.centroids[j, :], X[i, :])
+#                 if distJI < minDist:
+#                     minDist = distJI
+#                     preds[i] = j
+#         return preds
