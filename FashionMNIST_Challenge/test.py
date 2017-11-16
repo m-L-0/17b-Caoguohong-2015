@@ -147,42 +147,47 @@
 import numpy as np
 import tensorflow as tf
 
-def read_tfrecord():
-    filename_queue = tf.train.string_input_producer(["test.tfrecords"]) #读入流中
+def read_tfrecord(filename,tensor=[1,784],num=5000):
+    filename_queue = tf.train.string_input_producer([filename]) #读入流中
     reader = tf.TFRecordReader()
     _, serialized_example = reader.read(filename_queue)   #返回文件名和文件
     features = tf.parse_single_example(serialized_example,
                                        features={
                                            'label': tf.FixedLenFeature([], tf.int64),
-                                           'img_val' : tf.FixedLenFeature([28,28], tf.float32),
+                                           'img_val' : tf.FixedLenFeature(tensor, tf.float32),
                                        })  #取出包含image和label的feature对象
     image = tf.cast(features['img_val'], tf.float64)
     label = tf.cast(features['label'], tf.int32)
-
+    images=[];labels=[]
     with tf.Session() as sess:
         init_op = tf.global_variables_initializer()
         sess.run(init_op)
-        # coord=tf.train.Coordinator()
-        # threads= tf.train.start_queue_runners(coord=coord)
-        # for i in range(2):
-        #     example, l = sess.run([image, label])
-        #     print(example)
-        #     print(l)
-        # coord.request_stop()
-        # coord.join(threads=threads)
-
-read_tfrecord()
-
-
-
-
-
-
+        coord=tf.train.Coordinator()
+        threads= tf.train.start_queue_runners(coord=coord)
+        for i in range(num):
+            example, l = sess.run([image, label])
+            images.append(np.array(example[0]))
+            tem=np.zeros((1,10))
+            tem[0][l]=1.0
+            labels.append(tem[0])
+            del tem
+        coord.request_stop()
+        coord.join(threads=threads)
+    images=np.array(images)
+    labels=np.array(labels)
+    return images,labels
 
 
-
-
-
+# img,lab=read_tfrecord(filename='test.tfrecords',tensor=[1,784],num=1)
+# print(img[0])
+# print(lab)
+#
+# from tensorflow.examples.tutorials.mnist import input_data
+# mnist = input_data.read_data_sets('./data/', one_hot=True)
+# train_x, train_y = mnist.train.next_batch(1)
+#
+# print(train_x)
+# print(train_y)
 
 
 def loadMNIST():
@@ -191,17 +196,23 @@ def loadMNIST():
 
 
     return mnist
+from tensorflow.examples.tutorials.mnist import input_data
+mnist = input_data.read_data_sets('./data/', one_hot=True)
+train_x, train_y = mnist.train.next_batch(6)
+print(train_x[0])
+print("-------------------------------------------")
 
-
-def KNN(mnist):
-    train_x, train_y = mnist.train.next_batch(60000)
-    test_x, test_y = mnist.test.next_batch(5000)
+def KNN():
+    # train_x, train_y = mnist.train.next_batch(60000)
+    # test_x, test_y = mnist.test.next_batch(5000)
+    train_x,train_y=read_tfrecord(filename='train.tfrecords',tensor=[1,784],num=600)
+    test_x, test_y =read_tfrecord(filename='test.tfrecords',tensor=[1,784],num=500)
     # 數據二值化處理
     for i in range(len(train_x)):
         for j in range(len(train_x[0])):
             if train_x[i][j]>0:
                 train_x[i][j]=1.0
-    print(train_x[0])
+    # print(train_x[0])
     for i in range(len(test_x)):
         for j in range(len(test_x[0])):
             if test_x[i][j] > 0:
@@ -230,9 +241,9 @@ def KNN(mnist):
     print(accracy)
 
 
-# if __name__ == "__main__":
-#     mnist = loadMNIST()
-#     KNN(mnist)
+if __name__ == "__main__":
+    # mnist = loadMNIST()
+    KNN()
 
 
 
