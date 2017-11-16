@@ -144,107 +144,107 @@
 #
 #
 
-import numpy as np
-import tensorflow as tf
-
-def read_tfrecord(filename,tensor=[1,784],num=5000):
-    filename_queue = tf.train.string_input_producer([filename]) #读入流中
-    reader = tf.TFRecordReader()
-    _, serialized_example = reader.read(filename_queue)   #返回文件名和文件
-    features = tf.parse_single_example(serialized_example,
-                                       features={
-                                           'label': tf.FixedLenFeature([], tf.int64),
-                                           'img_val' : tf.FixedLenFeature(tensor, tf.float32),
-                                       })  #取出包含image和label的feature对象
-    image = tf.cast(features['img_val'], tf.float64)
-    label = tf.cast(features['label'], tf.int32)
-    images=[];labels=[]
-    with tf.Session() as sess:
-        init_op = tf.global_variables_initializer()
-        sess.run(init_op)
-        coord=tf.train.Coordinator()
-        threads= tf.train.start_queue_runners(coord=coord)
-        for i in range(num):
-            example, l = sess.run([image, label])
-            images.append(np.array(example[0]))
-            tem=np.zeros((1,10))
-            tem[0][l]=1.0
-            labels.append(tem[0])
-            del tem
-        coord.request_stop()
-        coord.join(threads=threads)
-    images=np.array(images)
-    labels=np.array(labels)
-    return images,labels
-
-
-# img,lab=read_tfrecord(filename='test.tfrecords',tensor=[1,784],num=1)
-# print(img[0])
-# print(lab)
+# import numpy as np
+# import tensorflow as tf
 #
+# def read_tfrecord(filename,tensor=[1,784],num=5000):
+#     filename_queue = tf.train.string_input_producer([filename]) #读入流中
+#     reader = tf.TFRecordReader()
+#     _, serialized_example = reader.read(filename_queue)   #返回文件名和文件
+#     features = tf.parse_single_example(serialized_example,
+#                                        features={
+#                                            'label': tf.FixedLenFeature([], tf.int64),
+#                                            'img_val' : tf.FixedLenFeature(tensor, tf.float32),
+#                                        })  #取出包含image和label的feature对象
+#     image = tf.cast(features['img_val'], tf.float64)
+#     label = tf.cast(features['label'], tf.int32)
+#     images=[];labels=[]
+#     with tf.Session() as sess:
+#         init_op = tf.global_variables_initializer()
+#         sess.run(init_op)
+#         coord=tf.train.Coordinator()
+#         threads= tf.train.start_queue_runners(coord=coord)
+#         for i in range(num):
+#             example, l = sess.run([image, label])
+#             images.append(np.array(example[0]))
+#             tem=np.zeros((1,10))
+#             tem[0][l]=1.0
+#             labels.append(tem[0])
+#             del tem
+#         coord.request_stop()
+#         coord.join(threads=threads)
+#     images=np.array(images)
+#     labels=np.array(labels)
+#     return images,labels
+#
+#
+# # img,lab=read_tfrecord(filename='test.tfrecords',tensor=[1,784],num=1)
+# # print(img[0])
+# # print(lab)
+# #
+# # from tensorflow.examples.tutorials.mnist import input_data
+# # mnist = input_data.read_data_sets('./data/', one_hot=True)
+# # train_x, train_y = mnist.train.next_batch(1)
+# #
+# # print(train_x)
+# # print(train_y)
+#
+#
+# def loadMNIST():
+#     from tensorflow.examples.tutorials.mnist import input_data
+#     mnist = input_data.read_data_sets('./data/', one_hot=True)
+#
+#
+#     return mnist
 # from tensorflow.examples.tutorials.mnist import input_data
 # mnist = input_data.read_data_sets('./data/', one_hot=True)
-# train_x, train_y = mnist.train.next_batch(1)
+# train_x, train_y = mnist.train.next_batch(6)
+# print(train_x[0])
+# print("-------------------------------------------")
 #
-# print(train_x)
-# print(train_y)
-
-
-def loadMNIST():
-    from tensorflow.examples.tutorials.mnist import input_data
-    mnist = input_data.read_data_sets('./data/', one_hot=True)
-
-
-    return mnist
-from tensorflow.examples.tutorials.mnist import input_data
-mnist = input_data.read_data_sets('./data/', one_hot=True)
-train_x, train_y = mnist.train.next_batch(6)
-print(train_x[0])
-print("-------------------------------------------")
-
-def KNN():
-    # train_x, train_y = mnist.train.next_batch(60000)
-    # test_x, test_y = mnist.test.next_batch(5000)
-    train_x,train_y=read_tfrecord(filename='train.tfrecords',tensor=[1,784],num=600)
-    test_x, test_y =read_tfrecord(filename='test.tfrecords',tensor=[1,784],num=500)
-    # 數據二值化處理
-    for i in range(len(train_x)):
-        for j in range(len(train_x[0])):
-            if train_x[i][j]>0:
-                train_x[i][j]=1.0
-    # print(train_x[0])
-    for i in range(len(test_x)):
-        for j in range(len(test_x[0])):
-            if test_x[i][j] > 0:
-                test_x[i][j] = 1.0
-    xtr = tf.placeholder(tf.float32, [None, 784])
-    xte = tf.placeholder(tf.float32, [784])
-    distance = tf.sqrt(tf.reduce_sum(tf.pow(tf.add(xtr, tf.negative(xte)), 2), reduction_indices=1))
-
-    pred = tf.argmin(distance, 0)
-
-    init = tf.global_variables_initializer()
-
-    sess = tf.Session()
-    sess.run(init)
-
-    right = 0
-    for i in range(500):
-        if i % 250==0 and i !=0:
-            print("已处理 {0}，正确率为{1}".format(i,right/i))
-        ansIndex = sess.run(pred, {xtr: train_x, xte: test_x[i, :]})
-        # print('prediction is ', str(np.where(train_y[ansIndex]==np.max(train_y[ansIndex]))))
-        # print('true value is ', str(np.where(test_y[i]==np.max(test_y[i]))))
-        if np.argmax(test_y[i]) == np.argmax(train_y[ansIndex]):
-            right += 1.0
-    accracy = right / 500.0
-    print(accracy)
-
-
-if __name__ == "__main__":
-    # mnist = loadMNIST()
-    KNN()
-
+# def KNN():
+#     # train_x, train_y = mnist.train.next_batch(60000)
+#     # test_x, test_y = mnist.test.next_batch(5000)
+#     train_x,train_y=read_tfrecord(filename='train.tfrecords',tensor=[1,784],num=600)
+#     test_x, test_y =read_tfrecord(filename='test.tfrecords',tensor=[1,784],num=500)
+#     # 數據二值化處理
+#     for i in range(len(train_x)):
+#         for j in range(len(train_x[0])):
+#             if train_x[i][j]>0:
+#                 train_x[i][j]=1.0
+#     # print(train_x[0])
+#     for i in range(len(test_x)):
+#         for j in range(len(test_x[0])):
+#             if test_x[i][j] > 0:
+#                 test_x[i][j] = 1.0
+#     xtr = tf.placeholder(tf.float32, [None, 784])
+#     xte = tf.placeholder(tf.float32, [784])
+#     distance = tf.sqrt(tf.reduce_sum(tf.pow(tf.add(xtr, tf.negative(xte)), 2), reduction_indices=1))
+#
+#     pred = tf.argmin(distance, 0)
+#
+#     init = tf.global_variables_initializer()
+#
+#     sess = tf.Session()
+#     sess.run(init)
+#
+#     right = 0
+#     for i in range(500):
+#         if i % 250==0 and i !=0:
+#             print("已处理 {0}，正确率为{1}".format(i,right/i))
+#         ansIndex = sess.run(pred, {xtr: train_x, xte: test_x[i, :]})
+#         # print('prediction is ', str(np.where(train_y[ansIndex]==np.max(train_y[ansIndex]))))
+#         # print('true value is ', str(np.where(test_y[i]==np.max(test_y[i]))))
+#         if np.argmax(test_y[i]) == np.argmax(train_y[ansIndex]):
+#             right += 1.0
+#     accracy = right / 500.0
+#     print(accracy)
+#
+#
+# if __name__ == "__main__":
+#     # mnist = loadMNIST()
+#     KNN()
+#
 
 
 
@@ -559,3 +559,124 @@ if __name__ == "__main__":
 #                     minDist = distJI
 #                     preds[i] = j
 #         return preds
+
+
+
+
+
+# import scipy.io as sio
+# from mpl_toolkits.mplot3d import Axes3D
+# import matplotlib.pyplot as plt
+
+# % matplotlib inline
+
+
+# mat1 = '4a.mat' #这是存放数据点的文件，需要它才可以画出来。上面有下载地址
+# data = sio.loadmat(mat1)
+# m = data['data']
+# print(m)
+# x,y,z = m[0],m[1],m[2]
+# ax=plt.subplot(111,projection='3d') #创建一个三维的绘图工程
+
+
+
+#将数据点分成三部分画，在颜色上有区分度
+# ax.scatter(x[:1000],y[:1000],z[:1000],c='y') #绘制数据点
+# ax.scatter(x[1000:4000],y[1000:4000],z[1000:4000],c='r')
+# ax.scatter(x[4000:],y[4000:],z[4000:],c='g')
+
+
+# ax.set_zlabel('Z') #坐标轴
+# ax.set_ylabel('Y')
+# ax.set_xlabel('X')
+# plt.show()
+
+
+
+
+import numpy as np
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from sklearn.manifold import TSNE
+from mpl_toolkits.mplot3d import Axes3D
+
+
+
+def read_tfrecord(filename,tensor=[1,784],num=5000):
+    filename_queue = tf.train.string_input_producer([filename]) #读入流中
+    reader = tf.TFRecordReader()
+    _, serialized_example = reader.read(filename_queue)   #返回文件名和文件
+    features = tf.parse_single_example(serialized_example,
+                                       features={
+                                           'label': tf.FixedLenFeature([], tf.int64),
+                                           'img_val' : tf.FixedLenFeature(tensor, tf.float32),
+                                       })  #取出包含image和label的feature对象
+    image = tf.cast(features['img_val'], tf.float64)
+    label = tf.cast(features['label'], tf.int32)
+    images=[];labels=[]
+    with tf.Session() as sess:
+        init_op = tf.global_variables_initializer()
+        sess.run(init_op)
+        coord=tf.train.Coordinator()
+        threads= tf.train.start_queue_runners(coord=coord)
+        for i in range(num):
+            example, l = sess.run([image, label])
+            images.append(np.array(example[0]))
+            tem=np.zeros((1,10))
+            tem[0][l]=1.0
+            labels.append(tem[0])
+            del tem
+        coord.request_stop()
+        coord.join(threads=threads)
+    images=np.array(images)
+    labels=np.array(labels)
+    return images,labels
+
+
+if __name__=="__main__":
+    img,lab=read_tfrecord('train.tfrecords',[1,784],100)
+    # X_embedded = TSNE(n_components=3, learning_rate=500.0, early_exaggeration=50.0, n_iter=500, init="pca",
+    #                   method="exact").fit_transform(img)
+    X_embedded = TSNE(n_components=3).fit_transform(img)
+    print("计算完成,开始绘图")
+    ax=plt.subplot(111,projection='3d') #创建一个三维的绘图工程
+    lab0=[];lab1=[];lab2=[];lab3=[];lab4=[];lab5=[];lab6=[];lab7=[];lab8=[];lab9=[];i=0
+    for li in X_embedded:
+        temp=np.argmax(lab[i])
+        if temp==0:
+            lab0.append(li)
+        elif temp == 1:
+            lab1.append(li)
+        elif temp == 2:
+            lab2.append(li)
+        elif temp == 3:
+            lab3.append(li)
+        elif temp == 4:
+            lab4.append(li)
+        elif temp == 5:
+            lab5.append(li)
+        elif temp == 6:
+            lab6.append(li)
+        elif temp == 7:
+            lab7.append(li)
+        elif temp == 8:
+            lab8.append(li)
+        elif temp == 9:
+            lab9.append(li)
+        i+=1
+    labs=[lab0,lab1,lab2,lab3,lab4,lab5,lab6,lab7,lab8,lab9]
+    colors = ['b', 'g', 'r', 'k', 'c', 'm', 'y', '#e24fff', '#524C90', '#845868']
+    i=0
+    b=[]
+    for li in labs:
+        p=[];q=[];r=[]
+        for x, y, z in li:
+            p.append(x);q.append(y);r.append(z)
+        a=ax.scatter(p, q, r, c=colors[i])  # 绘制数据点
+        b.append(a)
+        i+=1
+    ax.legend(tuple(b),('Label	Description','T-shirt/top','Trouser','Pullover','Dress','Coat','Sandal','Shirt','Sneaker','Bag','Ankle boot'),loc=0)
+    ax.set_zlabel('Z') #坐标轴
+    ax.set_ylabel('Y')
+    ax.set_xlabel('X')
+    plt.show()
