@@ -8,3 +8,4 @@
 4. Cython==0.27.3
 5. image==1.5.16
 6. matplotlib==2.1.0
+7. h5py==2.7.1
