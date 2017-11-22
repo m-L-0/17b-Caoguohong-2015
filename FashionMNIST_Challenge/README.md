@@ -9,3 +9,6 @@
 5. image==1.5.16
 6. matplotlib==2.1.0
 7. h5py==2.7.1
+
+### 三、参考模型
+[resnet](http://ethereon.github.io/netscope/#/gist/db945b393d40bfa26006)
