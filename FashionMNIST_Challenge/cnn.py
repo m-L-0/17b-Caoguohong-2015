@@ -65,7 +65,9 @@ model.add(Flatten())
 model.add(Dense(128, activation='relu'))
 model.add(Dropout(0.5))
 model.add(Dense(num_classes, activation='softmax'))
-
+from keras.utils import plot_model
+import pydot
+plot_model(model, to_file='./model_cnn.png')
 model.compile(loss=keras.metrics.categorical_crossentropy,
               optimizer=keras.optimizers.Adadelta(),
               metrics=['accuracy'])
