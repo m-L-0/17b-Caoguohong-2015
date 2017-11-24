@@ -10,6 +10,7 @@
 6. matplotlib==2.1.0
 7. h5py==2.7.1
 8. pydot==1.2.3(Keras保存圖像需要依賴，執行下面👇的命令即可)
+
 ```pip install pydot-ng & brew install graphviz```
 
 
