@@ -1134,7 +1134,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Activation
 import numpy as np
 from keras.layers import Conv2D, BatchNormalization, MaxPooling2D, Input
-from keras.layers import AveragePooling2D
+from keras.layers import AveragePooling2D, Flatten, GlobalMaxPooling2D
 from keras import layers
 from keras.models import Model
 
@@ -1228,7 +1228,9 @@ def my_resnet():
     x = identity_block(input_tensor=x, bn_axis=1, filters=(4, 4, 64), phase=2, name='c')
 
     x = AveragePooling2D((2, 2), name='avg_pool')(x)
+    x = Flatten()(x)
     x = Dense(10, activation='softmax', name='softmax10')(x)
+    # x = GlobalMaxPooling2D()(x)
 
     model = Model(inputs, x, name='My_Resnet')
     return model
@@ -1240,7 +1242,6 @@ def create_model():
     #                                              input_tensor=None, input_shape=(224, 224, 3),
     #                                              pooling='max',
     #                                              classes=10)
-
     model = my_resnet()
     model.compile(optimizer='rmsprop',
                   loss='categorical_crossentropy',
@@ -1277,7 +1278,9 @@ def read_tfrecord(filename, tensor=[1, 784], num=5000):
         threads = tf.train.start_queue_runners(coord=coord)
         for i in range(num):
             example, l = sess.run([image, label])
-            images.append(np.array(example[0]))
+            arr=np.array(example[0])
+            arr=arr.reshape((28,28))
+            images.append([arr])
             tem = np.zeros((1, 10))
             tem[0][l] = 1.0
             labels.append(tem[0])
@@ -1308,10 +1311,8 @@ def trun(arr):
 
 
 def getdata(train=55000, test=5000):
-    trimages, trlabels, _ = read_tfrecord('train.tfrecords', num=train, tensor=[28, 28])
-    teimages, telabels, _ = read_tfrecord('test.tfrecords', num=test, tensor=[28, 28])
-
-    print(trimages)
+    trimages, trlabels, _ = read_tfrecord('train.tfrecords', num=train,)
+    teimages, telabels, _ = read_tfrecord('test.tfrecords', num=test,)
     # trimages = trun(trimages)
     # teimages = trun(teimages)
 
@@ -1319,35 +1320,42 @@ def getdata(train=55000, test=5000):
 
 
 def main(train=55000, test=5000, batch_size=50, epochs=20):
-    # trimages, trlabels, tsimages, tslabels = getdata(train=train, test=test)
-
-    import numpy as np
-    data = np.random.random((20, 1, 28, 28))
-    labels = np.random.randint(2, size=(20, 1))
+    trimages, trlabels, tsimages, tslabels = getdata(train=train, test=test)
+    print(trlabels)
     model = create_model()
-    model.fit(data, labels, batch_size=batch_size, epochs=epochs, )
-    # model.evaluate(tsimages, tslabels, batch_size=batch_size)
-    # model.save('./resnet50.h5')
+    from keras.utils import plot_model
+    plot_model(model, to_file='./Resnet_model.png')
+    model.fit(trimages, trlabels, batch_size=batch_size, epochs=epochs, )
+    model.evaluate(tsimages, tslabels, batch_size=batch_size)
+    model.save('./resnet50.h5')
 
 
 def test_model(num=1000.0):
     timages, tlabels, _ = read_tfrecord('test.tfrecords', num=int(num))
-    tsimages = trun(timages)
 
     model = load_model('./resnet50.h5')
-    pre = model.predict(tsimages)
-    print(tlabels)
-    print(pre)
+    pre = model.predict(timages)
     tr = 0
-    for a, b in (tlabels, pre):
+    for a, b in zip(tlabels,pre):
+        a=np.argmax(a)
+        b=np.argmax(b)
         if a == b:
             tr += 1
     ls = tr / num
-    print("正確率為：{0}", ls)
+    print("正確率為：{0}".format(ls))
+
+
+def train_model():
+    from tensorflow.examples.tutorials.mnist import input_data
+    data = input_data.read_data_sets('./data/', validation_size=5000)
+    model=load_model('./resnet.h5')
+    model.fit()
+
 
 
 if __name__ == '__main__':
-    main(train=5, test=5)
-    # test_model(num=5)
+    main(epochs=30)
+    # main(train=2000, test=20,epochs=5)
+    # test_model(num=500)
     # x_train = np.random.random((2,5,5))
     # print(x_train)
