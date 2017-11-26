@@ -1218,14 +1218,22 @@ def my_resnet():
     inputs = Input(shape=(1, 28, 28))
 
     x = Conv2D(
-        filters=4, kernel_size=(3, 3), padding='same', name='Conv1', data_format='channels_first')(inputs)
+        filters=4, kernel_size=(2, 2), padding='same', name='Conv1', data_format='channels_first')(inputs)
     x = BatchNormalization(axis=1, name='BN_Conv1')(x)
     x = Activation('relu')(x)
     MaxPooling2D(pool_size=(2, 2), strides=(2, 2), data_format='channels_first')(x)
 
+    # x = conv_block(input_tensor=x, bn_axis=1, filters=(7, 7, 28), phase=2, name='a')
+    # x = identity_block(input_tensor=x, bn_axis=1, filters=(7, 7, 28), phase=2, name='b')
+    # x = identity_block(input_tensor=x, bn_axis=1, filters=(7, 7, 28), phase=2, name='c')
+
     x = conv_block(input_tensor=x, bn_axis=1, filters=(4, 4, 64), phase=2, name='a')
     x = identity_block(input_tensor=x, bn_axis=1, filters=(4, 4, 64), phase=2, name='b')
     x = identity_block(input_tensor=x, bn_axis=1, filters=(4, 4, 64), phase=2, name='c')
+
+    # x = conv_block(input_tensor=x, bn_axis=1, filters=(8, 8, 32), phase=3, name='a')
+    # x = identity_block(input_tensor=x, bn_axis=1, filters=(8, 8, 32), phase=3, name='b')
+    # x = identity_block(input_tensor=x, bn_axis=1, filters=(8, 8, 32), phase=3, name='c')
 
     x = AveragePooling2D((2, 2), name='avg_pool')(x)
     x = Flatten()(x)
@@ -1238,10 +1246,10 @@ def my_resnet():
 
 def create_model():
     """返回一個已創建好的 resnet50 model"""
-    # model = keras.applications.resnet50.ResNet50(include_top=True, weights=None,
-    #                                              input_tensor=None, input_shape=(224, 224, 3),
-    #                                              pooling='max',
-    #                                              classes=10)
+    model = keras.applications.resnet50.ResNet50(include_top=True, weights=None,
+                                                 input_tensor=None, input_shape=(224, 224, 3),
+                                                 pooling='max',
+                                                 classes=10)
     model = my_resnet()
     model.compile(optimizer='rmsprop',
                   loss='categorical_crossentropy',
@@ -1278,8 +1286,8 @@ def read_tfrecord(filename, tensor=[1, 784], num=5000):
         threads = tf.train.start_queue_runners(coord=coord)
         for i in range(num):
             example, l = sess.run([image, label])
-            arr=np.array(example[0])
-            arr=arr.reshape((28,28))
+            arr = np.array(example[0])
+            arr = arr.reshape((28, 28))
             images.append([arr])
             tem = np.zeros((1, 10))
             tem[0][l] = 1.0
@@ -1311,8 +1319,8 @@ def trun(arr):
 
 
 def getdata(train=55000, test=5000):
-    trimages, trlabels, _ = read_tfrecord('train.tfrecords', num=train,)
-    teimages, telabels, _ = read_tfrecord('test.tfrecords', num=test,)
+    trimages, trlabels, _ = read_tfrecord('train.tfrecords', num=train, )
+    teimages, telabels, _ = read_tfrecord('validation.tfrecords', num=test, )
     # trimages = trun(trimages)
     # teimages = trun(teimages)
 
@@ -1321,24 +1329,23 @@ def getdata(train=55000, test=5000):
 
 def main(train=55000, test=5000, batch_size=50, epochs=20):
     trimages, trlabels, tsimages, tslabels = getdata(train=train, test=test)
-    print(trlabels)
     model = create_model()
-    from keras.utils import plot_model
-    plot_model(model, to_file='./Resnet_model.png')
+    # from keras.utils import plot_model
+    # plot_model(model, to_file='./Resnet_model_xiugai.png')
     model.fit(trimages, trlabels, batch_size=batch_size, epochs=epochs, )
     model.evaluate(tsimages, tslabels, batch_size=batch_size)
-    model.save('./resnet50.h5')
+    model.save('./resnet_xiugai_ken2_1126.h5')
 
 
 def test_model(num=1000.0):
     timages, tlabels, _ = read_tfrecord('test.tfrecords', num=int(num))
 
-    model = load_model('./resnet50.h5')
+    model = load_model('./resnet_xiugai_ken2_1126.h5')
     pre = model.predict(timages)
     tr = 0
-    for a, b in zip(tlabels,pre):
-        a=np.argmax(a)
-        b=np.argmax(b)
+    for a, b in zip(tlabels, pre):
+        a = np.argmax(a)
+        b = np.argmax(b)
         if a == b:
             tr += 1
     ls = tr / num
@@ -1346,16 +1353,35 @@ def test_model(num=1000.0):
 
 
 def train_model():
-    from tensorflow.examples.tutorials.mnist import input_data
-    data = input_data.read_data_sets('./data/', validation_size=5000)
-    model=load_model('./resnet.h5')
-    model.fit()
+    name = 'resnet_xiugai_ken2_1126.h5'
+    model = load_model(name)
+    trimages, trlabels, tsimages, tslabels = getdata()
+    model.fit(trimages, trlabels, batch_size=100, epochs=5)
+    model.evaluate(tsimages, tslabels, batch_size=20)
+    model.save('./resnet_xiugai_ken2_1126.h5')
 
+
+def write():
+    timages, tlabels, _ = read_tfrecord('test.tfrecords', num=int(1000))
+    model = load_model('./resnet_xiugai_1126.h5')
+    pre = model.predict(timages)
+    f = open('./key.txt','w')
+    for i in pre:
+        i = str(np.argmax(i))
+        f.writelines(i+'\r')
+    f.close()
 
 
 if __name__ == '__main__':
-    main(epochs=30)
-    # main(train=2000, test=20,epochs=5)
-    # test_model(num=500)
+    # main(epochs=30)
+    # main(train=55000, test=5000,epochs=5,batch_size=100)
+    test_model(num=1000)
     # x_train = np.random.random((2,5,5))
     # print(x_train)
+    # train_model()
+    # write()
+
+
+def aa():
+    keras.applications.inception_resnet_v2.InceptionResNetV2(include_top=True, weights='imagenet', input_tensor=None,
+                                                             input_shape=None, pooling=None, classes=1000)
