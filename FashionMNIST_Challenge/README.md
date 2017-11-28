@@ -1,4 +1,4 @@
-# FashionMNIST_Challenge 作業說明
+# FashionMNIST Challenge 作業說明
 ### 一. 使用數據集 
 [FashionMNIST](https://github.com/zalandoresearch/fashion-mnist)
 ### 二. 依賴庫
