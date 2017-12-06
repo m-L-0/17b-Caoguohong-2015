@@ -12,6 +12,7 @@ Django==1.11.7
 entrypoints==0.2.3
 enum34==1.1.6
 first==2.0.1
+future==0.16.0
 graphviz==0.8.1
 h5py==2.7.1
 html5lib==0.9999999
@@ -27,6 +28,7 @@ jupyter==1.0.0
 jupyter-client==5.1.0
 jupyter-console==5.2.0
 jupyter-core==4.4.0
+jupyter-pip==0.3.1
 Keras==2.1.1
 Markdown==2.6.9
 MarkupSafe==1.0
@@ -51,6 +53,7 @@ protobuf==3.4.0
 ptyprocess==0.5.2
 pydot==1.2.3
 pydot-ng==1.0.0
+pyecharts==0.2.7
 Pygments==2.2.0
 pyparsing==2.2.0
 python-dateutil==2.6.1
