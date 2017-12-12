@@ -72,3 +72,25 @@ def yanzm():
     plt.show()
 
 # yanzm()
+
+
+def tongji():
+    import csv
+    with open('./data/labels/labels.csv') as data:
+        data=csv.reader(data)
+        result={}
+        tem=[]
+        num=0
+        for i in data:
+            num+=1
+            if len(i[1]) in result:
+                result[len(i[1])]+=1
+            else:
+                result[len(i[1])]=1
+        print(result)
+        print(num)
+        for i in result.keys():
+            result[i]=result[i]/num
+        print(result)
+
+tongji()
