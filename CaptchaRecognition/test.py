@@ -5,92 +5,53 @@
 # @File    : test.py
 # @Software: PyCharm
 
-import cv2
-import matplotlib.pyplot as plt
 
+import tensorflow as tf
+import numpy as np
+from PIL import Image
+import os
+import random
+import csv
 
-
-# opsu's 自適應算法
-def turn_two_color(name):
-    img = cv2.imread(name)
-    grayImage = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    ret2, th2 = cv2.threshold(grayImage, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    a = 0
-    for i in grayImage:
-        b = 0
-        for j in i:
-            if j < ret2:  # 比对均值
-                grayImage[a][b] = 0
-            else:
-                grayImage[a][b] = 255
-            b += 1
-        a += 1
-        del b
-    plt.imshow(grayImage)
-    plt.axis('off')
-    plt.show()
-    # cv2.imwrite('123.jpg', grayImage)
-
-# 均值算法
-def turn_two_color2(name):
-    img = cv2.imread(name)
-    grayImage = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    a = 0
-    for i in grayImage:
-        b = 0
-        for j in i:
-            if j < grayImage.mean():  # 比对均值
-                grayImage[a][b] = 0
-            else:
-                grayImage[a][b] = 255
-            b += 1
-        a += 1
-        del b
-    plt.imshow(grayImage)
-    plt.axis('off')
-    plt.show()
-#
-# turn_two_color('186.jpg')
-# turn_two_color2('186.jpg')
-
-
-def yanzm():
-    import string
-    import random
-    from captcha.image import ImageCaptcha
-    # characters = string.digits+string.ascii_uppercase
-    characters = string.digits
-
-    width, height, n_len, n_class = 170, 80, 4, len(characters)
-
-    generator = ImageCaptcha(width=width, height=height)
-    random_str = ''.join([random.choice(characters) for j in range(3)])
-    img = generator.generate_image(random_str)
-
-    plt.imshow(img)
-    plt.title(random_str)
-    plt.show()
-
-# yanzm()
-
-
-def tongji():
-    import csv
+label = []
+image_data = []
+for root, _, filename_list in os.walk('./data/images/'):
     with open('./data/labels/labels.csv') as data:
-        data=csv.reader(data)
-        result={}
-        tem=[]
-        num=0
+        data = csv.reader(data)
+        da = []
         for i in data:
-            num+=1
-            if len(i[1]) in result:
-                result[len(i[1])]+=1
-            else:
-                result[len(i[1])]=1
-        print(result)
-        print(num)
-        for i in result.keys():
-            result[i]=result[i]/num
-        print(result)
+            da.append([i[0].split('/')[-1], i[1]])
+        data = dict(da)
+        del da
+        for i in filename_list:
+            a = Image.open(str(os.path.join(root, i)))
+            a = a.resize((50, 40))
+            a = np.array(a)
+            a = np.resize(a, (6000))
+            label.append(data[i])
+            image_data.append(a)
 
-tongji()
+li = list(range(len(label)))
+random.shuffle(li)
+
+print('開始寫入')
+
+for i in range(40000):
+    if i % 4000 == 0:
+        name=str(i//4000)
+        writer = tf.python_io.TFRecordWriter('./data/' + name + '.tfrecords')
+    if (i + 1) % 1000 == 0:
+        print('已處理{}數據集{}張'.format(name, i))
+    img = image_data[li[i]].tostring()
+    lab = label[li[i]].encode()
+    example = tf.train.Example(features=tf.train.Features(feature={
+        'lab': tf.train.Feature(bytes_list=tf.train.BytesList(value=[lab])),
+        'img': tf.train.Feature(bytes_list=tf.train.BytesList(value=[img]))
+    }))
+    writer.write(example.SerializeToString())
+
+    if i % 4000 == 3999:
+        print('{}數據集處理完成'.format(name))
+        writer.close()
+
+
