@@ -6,52 +6,114 @@
 # @Software: PyCharm
 
 
-import tensorflow as tf
-import numpy as np
-from PIL import Image
-import os
-import random
-import csv
+def read_tfrecord_p(typ='train', num=1000):
+    import matplotlib.pyplot as mpl
+    import tensorflow as tf
+    import numpy as np
+    import cv2
+    if typ not in ['val', 'train', 'test']:
+        raise print('tpy 參數錯誤')
+    file_queue = []
+    if typ == 'train':
+        for i in range(8):
+            file_queue.append('./data/' + str(i) + '.tfrecords')
+    elif typ == 'test':
+        file_queue = ['./data/9.tfrecords']
+    elif typ == 'val':
+        file_queue = ['./data/8.tfrecords']
+    file_queue = tf.train.string_input_producer(file_queue)
+    reader = tf.TFRecordReader()
+    _, example = reader.read(file_queue)
+    features = tf.parse_single_example(example,
+                                       features={
+                                           'lab': tf.FixedLenFeature([], tf.string),
+                                           'img': tf.FixedLenFeature([], tf.string)
+                                       })
+    img = tf.decode_raw(features['img'], tf.uint8)
+    lab = tf.cast(features['lab'], tf.string)
 
-label = []
-image_data = []
-for root, _, filename_list in os.walk('./data/images/'):
-    with open('./data/labels/labels.csv') as data:
-        data = csv.reader(data)
-        da = []
-        for i in data:
-            da.append([i[0].split('/')[-1], i[1]])
-        data = dict(da)
-        del da
-        for i in filename_list:
-            a = Image.open(str(os.path.join(root, i)))
-            a = a.resize((50, 40))
-            a = np.array(a)
-            a = np.resize(a, (6000))
-            label.append(data[i])
-            image_data.append(a)
-
-li = list(range(len(label)))
-random.shuffle(li)
-
-print('開始寫入')
-
-for i in range(40000):
-    if i % 4000 == 0:
-        name=str(i//4000)
-        writer = tf.python_io.TFRecordWriter('./data/' + name + '.tfrecords')
-    if (i + 1) % 1000 == 0:
-        print('已處理{}數據集{}張'.format(name, i))
-    img = image_data[li[i]].tostring()
-    lab = label[li[i]].encode()
-    example = tf.train.Example(features=tf.train.Features(feature={
-        'lab': tf.train.Feature(bytes_list=tf.train.BytesList(value=[lab])),
-        'img': tf.train.Feature(bytes_list=tf.train.BytesList(value=[img]))
-    }))
-    writer.write(example.SerializeToString())
-
-    if i % 4000 == 3999:
-        print('{}數據集處理完成'.format(name))
-        writer.close()
+    with tf.Session() as sess:
+        init = tf.global_variables_initializer()
+        sess.run(init)
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(coord=coord)
+        images = []
+        labels = []
+        _ = []
+        for i in range(num):
+            image, label = sess.run([img, lab])
+            image = np.resize(image, [40, 50, 3])
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            _.append(label)
+            label = turn_data(int(label), 1)
+            images.append([image])
+            labels.append(label)
+        coord.request_stop()
+        coord.join(threads)
+        labels = turn_list(labels)
+        # images = np.array(images)
+        return images, labels, _
 
 
+def turn_list(lis):
+    import numpy
+    result = [[], [], [], []]
+    for i in lis:
+        for t in range(4):
+            result[t].append(i[t])
+    for i in range(4):
+        result[i] = numpy.array(result[i])
+    return result
+
+
+def turn_data(data, num):
+    import numpy
+    data = fill(data)
+    val = numpy.zeros((4, 11))
+    num = 0
+    for i in data:
+        if i == '@':
+            i = 10
+        else:
+            i = int(i)
+        val[num][i] = 1
+        num += 1
+    return val
+
+
+def fill(data):
+    data = str(data)
+    le = len(data)
+    for i in range(4 - le):
+        data += '@'
+    return data
+
+
+# print(turn_data(12, 0))
+
+
+from model import create_model, use_model, tr_model
+
+
+def train():
+    model = create_model()
+    a, b, _ = read_tfrecord_p(num=10000)
+    model.fit(a, b, epochs=10, batch_size=128)
+    model.save('./test1.h5')
+
+
+def tr():
+    X, y, _ = read_tfrecord_p(num=32000)
+    tr_model('./test1.h5', X=X, y=y, batch_size=128, epochs=10)
+
+# train()
+def test():
+    import numpy
+    X, y, _ = read_tfrecord_p(typ='val', num=2)
+    X = numpy.array(X)
+    print(y)
+    use_model('./test1.h5', X, y, typ='tfrecord')
+
+
+
+test()
