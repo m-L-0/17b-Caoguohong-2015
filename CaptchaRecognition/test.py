@@ -5,6 +5,39 @@
 # @File    : test.py
 # @Software: PyCharm
 
+import cv2
+import numpy as np
+import numpy
+
+def reduction(data, data_type='file', out_type='otsu'):
+
+    if data_type not in ['file','img'] or out_type not in ['otsu','mean']:
+        raise ValueError
+    if data_type == 'file':
+        img = cv2.imread(data, 0)
+    elif data_type == 'img':
+        img = data
+    kernel = np.ones((3, 3), np.uint8)
+    img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
+
+    if out_type == 'otsu':
+        # Otsu 滤波
+        ret2, th2 = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        return th2
+    elif out_type == 'mean':
+        a = 0
+        for i in img:
+            b = 0
+            for j in i:
+                if j < img.mean():  # 比对均值
+                    img[a][b] = 0
+                else:
+                    img[a][b] = 255
+                b += 1
+            a += 1
+            del b
+        return img
+
 
 def read_tfrecord_p(typ='train', num=1000):
     import matplotlib.pyplot as mpl
@@ -46,6 +79,7 @@ def read_tfrecord_p(typ='train', num=1000):
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             _.append(label)
             label = turn_data(int(label), 1)
+            image=reduction(image,data_type='img')
             images.append([image])
             labels.append(label)
         coord.request_stop()
@@ -97,23 +131,33 @@ from model import create_model, use_model, tr_model
 
 def train():
     model = create_model()
-    a, b, _ = read_tfrecord_p(num=10000)
-    model.fit(a, b, epochs=10, batch_size=128)
-    model.save('./test1.h5')
+    a, b, _ = read_tfrecord_p(num=32000)
+    model.fit(a, b, epochs=5, batch_size=128)
+    model.save('./test.h5')
+    tX, ty, _ = read_tfrecord_p(typ='val', num=4000)
+    tX = numpy.array(tX)
+    use_model('./test.h5', tX, ty, typ='tfrecord')
 
 
 def tr():
     X, y, _ = read_tfrecord_p(num=32000)
-    tr_model('./test1.h5', X=X, y=y, batch_size=128, epochs=10)
+    tr_model('./test.h5', X=X, y=y, batch_size=128, epochs=10)
 
-# train()
+
+
+
+
 def test():
     import numpy
-    X, y, _ = read_tfrecord_p(typ='val', num=2)
-    X = numpy.array(X)
-    print(y)
-    use_model('./test1.h5', X, y, typ='tfrecord')
+    tX, ty, _ = read_tfrecord_p(typ='val', num=4000)
+    tX = numpy.array(tX)
+    X, y, _ = read_tfrecord_p(num=32000)
+    for i in range(10):
+        tr_model('./test.h5', X=X, y=y, batch_size=128, epochs=5)
+        use_model('./test.h5', tX, ty, typ='tfrecord')
 
 
+# train()
+# test()
 
-test()
+

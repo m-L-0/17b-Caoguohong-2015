@@ -10,7 +10,7 @@ from keras import layers
 from keras.models import model_from_json, load_model, Model
 from keras.layers import Conv2D, BatchNormalization, Activation, Flatten
 from keras.layers import Input, MaxPooling2D, AveragePooling2D, Dense
-from keras.layers import Dropout
+from keras.layers import Dropout, UpSampling2D
 import numpy as np
 
 
@@ -96,7 +96,7 @@ def my_resnet():
         filters=4, kernel_size=(2, 4), padding='same', name='Conv1', data_format='channels_first')(inputs)
     x = BatchNormalization(axis=1, name='BN_Conv1')(x)
     x = Activation('relu')(x)
-    MaxPooling2D(pool_size=(2, 2), strides=(2, 2), data_format='channels_first')(x)
+    x = MaxPooling2D(pool_size=(2, 2), strides=(1, 1), data_format='channels_first')(x)
 
     x = conv_block(input_tensor=x, bn_axis=1, filters=(4, 4, 64), phase=2, name='a')
     x = identity_block(input_tensor=x, bn_axis=1, filters=(4, 4, 64), phase=2, name='b')
@@ -126,26 +126,55 @@ def create_model():
     return model
 
 
-def use_model(modelname, X, y, typ='jpg'):
-    model = load_model(modelname)
-    result = model.predict(X)
-    print(result)
-    mi = []
-    for i in range(4):
-        mi.append(np.argmax(result[i]))
-    print(mi)
-    # print(len(result))
-    # for i in result:
-    #     for j in range(4):
-    #         mi.append(np.argmax(i[j]))
-    # print(mi)
-    # if typ != 'jpg':
-    #     for a,b in zip(result,y):
-    #         print('预测：{} 正确：{}'.format(a,b))
-
-
 def tr_model(modelname, X, y, batch_size, epochs):
     model = load_model(modelname)
     model.fit(X, y, batch_size=batch_size, epochs=epochs, shuffle=True)
     model.save(modelname)
 
+
+def use_model(modelname, X, y, typ='jpg'):
+    model = load_model(modelname)
+    temp = model.predict(X)
+    result = arr2list(temp)
+    y = arr2list(y)
+    num = 0
+    for i in range(len(result)):
+        if result[i] == y[i]:
+            num += 1
+
+    print(num / len(result))
+
+
+def arr2list(arr):
+    result = []
+    for i in range(len(arr[0])):
+        te = ''
+        for j in range(4):
+            if np.argmax(arr[j][i]) == 10:
+                pass
+            else:
+                te += str(np.argmax(arr[j][i]))
+        result.append(te)
+
+    return result
+
+
+def my_model():
+    input_img = Input(shape=(1, 40, 50))
+
+    x = Conv2D(32, (3, 3), activation='relu', padding='same')(input_img)  # (?, 28, 28, 32)
+    x = MaxPooling2D((2, 2), padding='same')(x)  # (?, 14, 14, 32)
+    x = Conv2D(32, (3, 3), activation='relu', padding='same')(x)  # (?, 14, 14, 32)
+    encoded = MaxPooling2D((2, 2), padding='same')(x)  # (?, 7, 7, 32)
+
+    x = Conv2D(32, (3, 3), activation='relu', padding='same')(encoded)  # (?, 7, 7, 32)
+    x = UpSampling2D((2, 2))(x)  # (?, 14, 14, 32)
+    x = Conv2D(32, (3, 3), activation='relu', padding='same')(x)  # (?, 14, 14, 32)
+    x = UpSampling2D((2, 2))(x)  # (?, 28, 28, 32)
+    decoded = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(x)
+
+    # out = Dense(11110, activation='softmax')(x)
+
+    model = Model(input_img, decoded, name='My_Resnet')
+    model.compile(optimizer='sgd', loss='mean_squared_error')
+    return model
