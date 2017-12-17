@@ -18,7 +18,7 @@ def reduction(data, data_type='file', out_type='otsu'):
         img = cv2.imread(data, 0)
     elif data_type == 'img':
         img = data
-    kernel = np.ones((3, 2), np.uint8)
+    kernel = np.ones((3, 3), np.uint8)
     img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
 
     if out_type == 'otsu':
@@ -40,7 +40,7 @@ def reduction(data, data_type='file', out_type='otsu'):
         return img
 
 
-img = cv2.imread('./data/4068.jpg', 0)
+img = cv2.imread('./data/4288.jpg', 0)
 print(reduction(img, 'img', 'mean'))
 img=reduction(img, 'img', 'mean')
 

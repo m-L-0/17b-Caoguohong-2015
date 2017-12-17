@@ -126,9 +126,11 @@ def create_model():
     return model
 
 
-def tr_model(modelname, X, y, batch_size, epochs):
+def tr_model(modelname, X, y,eval_X,eval_y, batch_size, epochs):
     model = load_model(modelname)
     model.fit(X, y, batch_size=batch_size, epochs=epochs, shuffle=True)
+    el=model.evaluate(eval_X,eval_y,batch_size=64)
+    print(el)
     model.save(modelname)
 
 
@@ -162,19 +164,96 @@ def arr2list(arr):
 def my_model():
     input_img = Input(shape=(1, 40, 50))
 
-    x = Conv2D(32, (3, 3), activation='relu', padding='same')(input_img)  # (?, 28, 28, 32)
-    x = MaxPooling2D((2, 2), padding='same')(x)  # (?, 14, 14, 32)
-    x = Conv2D(32, (3, 3), activation='relu', padding='same')(x)  # (?, 14, 14, 32)
-    encoded = MaxPooling2D((2, 2), padding='same')(x)  # (?, 7, 7, 32)
+    x = Conv2D(filters=4, kernel_size=(4, 4), strides=(1, 1), padding='same', data_format='channels_first')(input_img)
+    x = BatchNormalization(axis=1, )(x)
+    x = Activation('selu')(x)
+    x = MaxPooling2D(pool_size=(2, 2), strides=(1, 1), padding='same', data_format='channels_first')(x)
 
-    x = Conv2D(32, (3, 3), activation='relu', padding='same')(encoded)  # (?, 7, 7, 32)
-    x = UpSampling2D((2, 2))(x)  # (?, 14, 14, 32)
-    x = Conv2D(32, (3, 3), activation='relu', padding='same')(x)  # (?, 14, 14, 32)
-    x = UpSampling2D((2, 2))(x)  # (?, 28, 28, 32)
-    decoded = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(x)
+    x = conv_block2(input_tensor=x, bn_axis=1, filters=(4, 4, 8), phase=2, name='a')
+    x = identity_block2(input_tensor=x, bn_axis=1, filters=(4, 4, 8), phase=2, name='b')
+    x = identity_block2(input_tensor=x, bn_axis=1, filters=(4, 4, 8), phase=2, name='c')
 
-    # out = Dense(11110, activation='softmax')(x)
+    x = AveragePooling2D(pool_size=(2, 2), )(x)
+    x = Flatten()(x)
+    output = [Dense(11, activation='softmax', name='sotfmax11_%d' % (i + 1))(x) for i in range(4)]
 
-    model = Model(input_img, decoded, name='My_Resnet')
-    model.compile(optimizer='sgd', loss='mean_squared_error')
+    model = Model(input_img, output, name='My_Resnet')
+    model.compile(optimizer='rmsprop',
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
     return model
+
+
+def conv_block2(input_tensor, bn_axis, filters, phase, name, strides=(1, 1)):
+    """
+    Conv2D 塊，雙路雙卷積計算
+    :param input_tensor:(tensor) 輸入張量
+    :param filters:(tuple) 卷積核打包
+    :param strides:(int) 卷積步長
+    :param BN_axis:(int) 規範化卷積軸
+    :return: model
+    """
+    filters1, filters2, filters3 = filters  # 解包卷積核數量
+    Conv_base_name = 'Conv_' + name + '_' + str(phase) + '_phase_'
+    BN_base_name = 'BN_' + name + '_' + str(phase) + '_phase_'
+    x = Conv2D(
+        filters=filters1, kernel_size=(1, 1), strides=strides, name=Conv_base_name + '2a'
+    )(input_tensor)
+    x = BatchNormalization(axis=bn_axis, name=BN_base_name + '2a')(x)
+    x = Activation(activation='selu')(x)
+
+    x = Conv2D(
+        filters=filters2, kernel_size=(1, 1), strides=strides, name=Conv_base_name + '2b'
+    )(x)
+    x = BatchNormalization(axis=bn_axis, name=BN_base_name + '2b')(x)
+    x = Activation(activation='selu')(x)
+
+    x = Conv2D(
+        filters=filters3, kernel_size=(1, 1), strides=strides, name=Conv_base_name + '2c'
+    )(x)
+    x = BatchNormalization(axis=bn_axis, name=BN_base_name + '2c')(x)
+    x = Activation(activation='selu')(x)
+
+    y = Conv2D(filters3, (1, 1), strides=strides, name=Conv_base_name + '1a')(input_tensor)
+    y = BatchNormalization(axis=bn_axis, name=BN_base_name + '1b')(y)
+
+    x = layers.add([x, y])
+    a = Activation('selu')(x)
+
+    return a
+
+
+def identity_block2(input_tensor, bn_axis, filters, phase, name, strides=(1, 1)):
+    """
+    Conv2D 塊，雙路單卷積計算
+    :param input_tensor:(tensor) 輸入張量
+    :param filters:(tuple) 卷積核打包
+    :param strides:(int) 卷積步長
+    :param BN_axis:(int) 規範化卷積軸
+    :return: model
+    """
+    filters1, filters2, filters3 = filters  # 解包卷積核數量
+    Conv_base_name = 'Conv_' + name + '_' + str(phase) + '_phase_'
+    BN_base_name = 'BN_' + name + '_' + str(phase) + '_phase_'
+    x = Conv2D(
+        filters=filters1, kernel_size=(1, 1), strides=strides, name=Conv_base_name + '2a'
+    )(input_tensor)
+    x = BatchNormalization(axis=bn_axis, name=BN_base_name + '2a')(x)
+    x = Activation(activation='selu')(x)
+
+    x = Conv2D(
+        filters=filters2, kernel_size=(1, 1), strides=strides, name=Conv_base_name + '2b'
+    )(x)
+    x = BatchNormalization(axis=bn_axis, name=BN_base_name + '2b')(x)
+    x = Activation(activation='selu')(x)
+
+    x = Conv2D(
+        filters=filters3, kernel_size=(1, 1), strides=strides, name=Conv_base_name + '2c'
+    )(x)
+    x = BatchNormalization(axis=bn_axis, name=BN_base_name + '2c')(x)
+    x = Activation(activation='selu')(x)
+
+    x = layers.add([x, input_tensor])
+    a = Activation('selu')(x)
+
+    return a

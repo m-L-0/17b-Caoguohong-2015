@@ -9,9 +9,9 @@ import cv2
 import numpy as np
 import numpy
 
-def reduction(data, data_type='file', out_type='otsu'):
 
-    if data_type not in ['file','img'] or out_type not in ['otsu','mean']:
+def reduction(data, data_type='file', out_type='otsu'):
+    if data_type not in ['file', 'img'] or out_type not in ['otsu', 'mean']:
         raise ValueError
     if data_type == 'file':
         img = cv2.imread(data, 0)
@@ -79,7 +79,7 @@ def read_tfrecord_p(typ='train', num=1000):
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             _.append(label)
             label = turn_data(int(label), 1)
-            image=reduction(image,data_type='img')
+            # image=reduction(image,data_type='img')
             images.append([image])
             labels.append(label)
         coord.request_stop()
@@ -126,7 +126,7 @@ def fill(data):
 # print(turn_data(12, 0))
 
 
-from model import create_model, use_model, tr_model
+from model import create_model, use_model, tr_model, my_model
 
 
 def train():
@@ -139,25 +139,37 @@ def train():
     use_model('./test.h5', tX, ty, typ='tfrecord')
 
 
-def tr():
-    X, y, _ = read_tfrecord_p(num=32000)
-    tr_model('./test.h5', X=X, y=y, batch_size=128, epochs=10)
-
-
-
-
-
 def test():
     import numpy
     tX, ty, _ = read_tfrecord_p(typ='val', num=4000)
     tX = numpy.array(tX)
     X, y, _ = read_tfrecord_p(num=32000)
-    for i in range(10):
-        tr_model('./test.h5', X=X, y=y, batch_size=128, epochs=5)
+    for i in range(2):
+        tr_model('./test.h5', X=X, y=y, batch_size=128, epochs=5, eval_X=tX, eval_y=ty)
         use_model('./test.h5', tX, ty, typ='tfrecord')
 
 
 # train()
 # test()
 
+def my_test1():
+    model = my_model()
+    a, b, _ = read_tfrecord_p(num=32000)
+    model.fit(a, b, epochs=5, batch_size=128)
+    model.save('./my_test1.h5')
 
+
+def re_my_test1():
+    import numpy
+    tX, ty, _ = read_tfrecord_p(typ='val', num=4000)
+    teX, tey, _ = read_tfrecord_p(typ='test', num=4000)
+    teX = numpy.array(teX)
+    tX = numpy.array(tX)
+    X, y, _ = read_tfrecord_p(num=32000)
+    for i in range(10):
+        tr_model('./my_test1.h5', X=X, y=y, eval_X=tX, eval_y=ty, batch_size=128, epochs=2)
+        use_model('./my_test1.h5', teX, tey, typ='tfrecord')
+
+
+# my_test1()
+# re_my_test1()
