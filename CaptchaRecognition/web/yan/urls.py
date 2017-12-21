@@ -9,5 +9,6 @@ from django.conf.urls import url
 from .views import *
 
 urlpatterns = [
-    url(r'^ya',yan,name='yanzhengma')
+    url(r'^ya',yan,name='yanzhengma'),
+    url(r'^upload',upload,name='upload')
 ]
