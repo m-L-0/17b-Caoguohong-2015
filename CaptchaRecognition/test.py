@@ -17,7 +17,7 @@ def reduction(data, data_type='file', out_type='otsu'):
         img = cv2.imread(data, 0)
     elif data_type == 'img':
         img = data
-    kernel = np.ones((3, 3), np.uint8)
+    kernel = np.ones((2, 2), np.uint8)
     img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
 
     if out_type == 'otsu':
@@ -37,6 +37,11 @@ def reduction(data, data_type='file', out_type='otsu'):
             a += 1
             del b
         return img
+
+#
+# img = cv2.imread('./data/4069.jpg', 0)
+# img = reduction(img, 'img', 'mean')
+# cv2.imwrite('4069_.jpg',img)
 
 
 def read_tfrecord_p(typ='train', num=1000):
@@ -224,10 +229,8 @@ def re_my_test1():
     use_model('./test1.h5', X, y, typ='tfrecord')
     for i in range(10):
         tr_model('./test1.h5', X=X, y=y, eval_X=tX, eval_y=ty, batch_size=128, epochs=2)
+        use_model('./test1.h5', X, y, typ='tfrecord')
         use_model('./test1.h5', teX, tey, typ='tfrecord')
-
 
 # my_test1()
 # re_my_test1()
-
-

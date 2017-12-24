@@ -17,12 +17,6 @@ from keras.layers import Conv2D
 from keras.layers import MaxPooling2D
 from keras.layers import AveragePooling2D
 from keras.layers import GlobalAveragePooling2D
-from keras.layers import GlobalMaxPooling2D
-from keras.utils.data_utils import get_file
-from keras import backend as K
-from keras.applications import imagenet_utils
-from keras.applications.imagenet_utils import decode_predictions
-from keras.applications.imagenet_utils import _obtain_input_shape
 
 
 
@@ -58,21 +52,6 @@ def my_InceptionV3():
         axis=1,
         name='mixed0')
 
-    # branch1x1 = conv2D_bn(t, 16, (1, 1))
-    #
-    # branch5x5 = conv2D_bn(t, 12, (1, 1))
-    # branch5x5 = conv2D_bn(branch5x5, 16, (5, 5))
-    #
-    # branch3x3dbl = conv2D_bn(t, 16, (1, 1))
-    # branch3x3dbl = conv2D_bn(branch3x3dbl, 16, (3, 3))
-    # branch3x3dbl = conv2D_bn(branch3x3dbl, 16, (3, 3))
-    #
-    # branch_pool = AveragePooling2D((3, 3), strides=(1, 1), padding='same')(t)
-    # branch_pool = conv2D_bn(branch_pool, 16, (1, 1))
-    # t = layers.concatenate(
-    #     [branch1x1, branch5x5, branch3x3dbl, branch_pool],
-    #     axis=1,
-    #     name='mixed1')
 
     t = GlobalAveragePooling2D(name='avg_pool')(t)
 

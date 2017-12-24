@@ -4,6 +4,8 @@ from django.shortcuts import render
 
 from django.http import HttpResponse
 from django.shortcuts import render
+import subprocess
+import requests
 
 
 def yan(request):
@@ -13,8 +15,8 @@ def yan(request):
 def upload(request):
     handle_uploaded_file(str(request.FILES['file-zh-TW[]']), request.FILES['file-zh-TW[]'])
     file = './static/upload/' + str(request.FILES['file-zh-TW[]'])
-    print(file)
-    result = predict(file)
+    a = subprocess.getoutput("./tools/predict "+file)
+    result = str(a).split('\n')[-1]
     return HttpResponse("{\"extra\": \"" + result + "\"}")
 
 
@@ -24,21 +26,13 @@ def handle_uploaded_file(filename, f):
             destination.write(chunk)
 
 
-def predict(filename):
-    import cv2
-    import numpy
-    from keras.models import load_model
-    model = load_model('./tools/test1.h5')
-    img = cv2.imread(filename, 0)
-    img = cv2.resize(img, (50, 40))
-    img = numpy.resize(img, (1, 1, 40, 50))
-    temp = model.predict([img])
-    arr = []
-    result = ''
-    for i in temp:
-        arr.append(numpy.argmax(i))
-    for i in arr:
-        i = str(i)
-        if i != '10':
-            result += i
-    return result
+
+def api(request):
+    imgurl=request.GET['url']
+    imgdata = requests.get(imgurl).content
+    with open('./static/upload/' + 'temp.jpg', 'wb') as f:
+        f.write(imgdata)
+    file='./static/upload/temp.jpg'
+    a = subprocess.getoutput("./tools/predict " + file)
+    result = str(a).split('\n')[-1]
+    return HttpResponse('識別結果為'+result)

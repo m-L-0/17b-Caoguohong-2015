@@ -134,7 +134,7 @@ def tr_model(modelname, X, y, eval_X, eval_y, batch_size, epochs):
     model.save(modelname)
 
 
-def use_model(modelname, X, y, typ='jpg'):
+def use_model(modelname, X, y,):
     model = load_model(modelname)
     temp = model.predict(X)
     result = arr2list(temp)
