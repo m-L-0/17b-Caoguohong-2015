@@ -3,5 +3,6 @@
 
 ## 作業列表
 
-1. [FashionMNIST_Challenge](./FashionMNIST_Challenge)
-2. [Vehicle_License_Plate_Recognition](./Vehicle_License_Plate_Recognition)
+1. [FashionMNIST Challenge](./FashionMNIST_Challenge)
+2. [Vehicle License Plate Recognition](./Vehicle_License_Plate_Recognition)
+3. [Captcha Recognition](./CaptchaRecognition)
